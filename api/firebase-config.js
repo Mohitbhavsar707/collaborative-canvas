@@ -6,13 +6,16 @@ export default function handler(req, res) {
 
     // Helper to clean env vars that may have been saved with extra quotes in Vercel
     const clean = (val, fallback) => {
-        const v = (val ?? fallback ?? '').toString().trim().replace(/^"+|"+$/g, '');
+        let v = (val ?? fallback ?? '').toString().trim();
+        // strip any surrounding single or double quotes repeatedly
+        v = v.replace(/^['"]+/, '').replace(/['"]+$/, '');
         return JSON.stringify(v);
     };
 
     // Generate JavaScript that sets window variables
     const configScript = `
 // Firebase configuration injected from Vercel environment variables
+// version: ${Date.now()}
 window.FIREBASE_API_KEY = ${clean(process.env.FIREBASE_API_KEY, 'demo-api-key')};
 window.FIREBASE_AUTH_DOMAIN = ${clean(process.env.FIREBASE_AUTH_DOMAIN, 'demo-project.firebaseapp.com')};
 window.FIREBASE_DATABASE_URL = ${clean(process.env.FIREBASE_DATABASE_URL, 'https://demo-project-default-rtdb.firebaseio.com')};
