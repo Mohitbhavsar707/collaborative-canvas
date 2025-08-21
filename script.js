@@ -10,6 +10,9 @@ class CollaborativeCanvas {
         this.lastX = 0;
         this.lastY = 0;
         this.isLoading = false;
+        this.firebaseReady = false;
+        this.unsubscribeCanvas = null;
+        this.unsubscribeUsers = null;
         
         // Auto-save timer
         setInterval(() => this.autoSave(), 30000);
@@ -20,8 +23,8 @@ class CollaborativeCanvas {
         // Initialize event listeners
         this.initializeEventListeners();
         
-        // Initialize enhanced collaboration
-        this.initializeCollaboration();
+        // Initialize Firebase collaboration
+        this.initializeFirebaseCollaboration();
     }
     
     resizeCanvas() {
@@ -302,14 +305,60 @@ class CollaborativeCanvas {
     }
     
     
-    initializeCollaboration() {
-        // Set up localStorage change listener for cross-tab communication
+    async initializeFirebaseCollaboration() {
+        // Wait for Firebase to be ready
+        const maxWait = 10000; // 10 seconds
+        let elapsed = 0;
+        
+        while (!window.firebaseUtils && elapsed < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            elapsed += 100;
+        }
+        
+        if (!window.firebaseUtils) {
+            console.error('Firebase utilities not available, falling back to localStorage');
+            this.initializeLocalStorage();
+            return;
+        }
+        
+        // Wait for Firebase utils to initialize
+        while (!window.firebaseUtils.database && elapsed < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            elapsed += 100;
+        }
+        
+        this.firebaseReady = true;
+        
+        // Set up real-time listener for canvas changes
+        this.unsubscribeCanvas = window.firebaseUtils.onCanvasChange((data) => {
+            if (data && !this.isLoading) {
+                this.loadCanvasFromData(data, true); // true = from other user
+            }
+        });
+        
+        // Set up user presence listener
+        this.unsubscribeUsers = window.firebaseUtils.onUsersChange((users) => {
+            this.updateActiveUsers(users);
+        });
+        
+        // Update user presence
+        const username = document.getElementById('username').value || 'Anonymous';
+        await window.firebaseUtils.updateUserPresence(username, true);
+        
+        // Load initial canvas data
+        this.loadCanvas();
+        
+        console.log('🌍 Firebase collaboration ready! (Real-time global sync active)');
+    }
+    
+    initializeLocalStorage() {
+        // Fallback to localStorage if Firebase fails
         window.addEventListener('storage', (e) => {
             if (e.key === 'collaborative-canvas' && e.newValue && !this.isLoading) {
                 try {
                     const data = JSON.parse(e.newValue);
                     if (data && data.imageData) {
-                        this.loadCanvasFromData(data, true); // true = from other tab/user
+                        this.loadCanvasFromData(data, true);
                     }
                 } catch (error) {
                     console.error('Error parsing storage update:', error);
@@ -317,10 +366,8 @@ class CollaborativeCanvas {
             }
         });
         
-        // Load initial canvas data
-        this.loadCanvas();
-        
-        console.log('🌍 Enhanced collaboration ready! (Cross-tab sync active)');
+        this.loadCanvasFromLocalStorage();
+        console.log('📱 Local storage collaboration active');
     }
     
     loadCanvasFromData(data, isRealTimeUpdate = false) {
@@ -384,54 +431,95 @@ class CollaborativeCanvas {
         }, 3000);
     }
     
-    saveCanvas() {
-        const username = document.getElementById('username').value || 'Anonymous';
-        const canvasData = this.canvas.toDataURL();
-        const saveData = {
-            imageData: canvasData,
-            timestamp: new Date().toISOString(),
-            editor: username,
-            version: Date.now()
-        };
+    updateActiveUsers(users) {
+        // Filter active users from the last 5 minutes
+        const now = Date.now();
+        const activeUsers = users.filter(user => {
+            if (!user.lastSeen) return false;
+            const lastSeenTime = typeof user.lastSeen === 'number' ? user.lastSeen : new Date(user.lastSeen).getTime();
+            return (now - lastSeenTime) < 300000; // 5 minutes
+        });
         
-        // Save to localStorage (will trigger cross-tab sync)
-        localStorage.setItem('collaborative-canvas', JSON.stringify(saveData));
-        
-        // Update UI
-        document.getElementById('last-saved').textContent = `Last saved: ${new Date().toLocaleString()}`;
-        document.getElementById('last-editor').textContent = `Last edited by: ${username}`;
-        
-        // Visual feedback
-        const saveBtn = document.getElementById('save-canvas');
-        saveBtn.classList.add('save-success');
-        saveBtn.textContent = '✓ Saved!';
-        
-        setTimeout(() => {
-            saveBtn.classList.remove('save-success');
-            saveBtn.textContent = '💾 Save';
-        }, 1500);
-        
-        console.log('Canvas saved with cross-tab sync!');
+        // Update UI to show active users (optional - could add to header)
+        console.log(`👥 Active users: ${activeUsers.map(u => u.name).join(', ')}`);
     }
     
-    loadCanvas() {
-        // Load from localStorage
+    async saveCanvas() {
+        const username = document.getElementById('username').value || 'Anonymous';
+        const canvasData = this.canvas.toDataURL();
+        
+        let success = false;
+        
+        if (this.firebaseReady && window.firebaseUtils) {
+            // Save to Firebase
+            success = await window.firebaseUtils.saveCanvas(canvasData, username);
+        }
+        
+        if (!success) {
+            // Fallback to localStorage
+            const saveData = {
+                imageData: canvasData,
+                timestamp: new Date().toISOString(),
+                editor: username,
+                version: Date.now()
+            };
+            localStorage.setItem('collaborative-canvas', JSON.stringify(saveData));
+            success = true;
+        }
+        
+        if (success) {
+            // Update UI
+            document.getElementById('last-saved').textContent = `Last saved: ${new Date().toLocaleString()}`;
+            document.getElementById('last-editor').textContent = `Last edited by: ${username}`;
+            
+            // Visual feedback
+            const saveBtn = document.getElementById('save-canvas');
+            saveBtn.classList.add('save-success');
+            saveBtn.textContent = '✓ Saved!';
+            
+            setTimeout(() => {
+                saveBtn.classList.remove('save-success');
+                saveBtn.textContent = '💾 Save';
+            }, 1500);
+        }
+    }
+    
+    async loadCanvas() {
+        if (this.firebaseReady && window.firebaseUtils) {
+            try {
+                const data = await window.firebaseUtils.loadCanvas();
+                if (data) {
+                    this.loadCanvasFromData(data);
+                    return;
+                }
+            } catch (error) {
+                console.error('Error loading from Firebase:', error);
+            }
+        }
+        
+        // Fallback to localStorage
         this.loadCanvasFromLocalStorage();
     }
     
-    autoSave() {
+    async autoSave() {
         if (this.isLoading) return;
         
         const username = document.getElementById('username').value || 'Anonymous';
         const canvasData = this.canvas.toDataURL();
+        
+        if (this.firebaseReady && window.firebaseUtils) {
+            // Auto-save to Firebase
+            const success = await window.firebaseUtils.saveCanvas(canvasData, username);
+            if (success) return;
+        }
+        
+        // Fallback to localStorage
         const saveData = {
             imageData: canvasData,
             timestamp: new Date().toISOString(),
             editor: username,
             version: Date.now()
         };
-        
-        // Auto-save to localStorage (will trigger cross-tab sync)
         localStorage.setItem('collaborative-canvas', JSON.stringify(saveData));
     }
     
