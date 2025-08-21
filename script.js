@@ -369,6 +369,7 @@ class CollaborativeCanvas {
         
         localStorage.setItem('collaborative-canvas', JSON.stringify(saveData));
     }
+    
 }
 
 // Initialize the application when DOM is loaded
