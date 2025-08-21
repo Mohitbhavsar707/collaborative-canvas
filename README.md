@@ -1,6 +1,6 @@
 # Collaborative Drawing Canvas
 
-A simple web-based collaborative drawing application that allows multiple users to draw, add text, and paste images on a shared canvas.
+A simple web-based collaborative drawing application that allows multiple users to draw, add text, and paste images on a shared canvas. Built using ##Warp.
 
 ## Features
 
@@ -61,46 +61,5 @@ A simple web-based collaborative drawing application that allows multiple users 
 - **🗑️ Clear**: Removes everything from canvas (with confirmation)
 - **💾 Save**: Manually saves current canvas state
 - **📁 Load**: Loads the most recent saved version
-
-## Technical Details
-
-- **Frontend**: HTML5 Canvas, CSS3, Vanilla JavaScript
-- **Storage**: Browser localStorage (shared across tabs)
-- **Compatibility**: Modern browsers with Canvas support
-- **No server required**: Runs entirely in the browser
-
-## File Structure
-
-```
-collaborative-canvas/
-├── index.html      # Main HTML file
-├── styles.css      # CSS styling
-├── script.js       # JavaScript functionality
-└── README.md       # This file
-```
-
-## Browser Compatibility
-
-- Chrome/Chromium 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
-
-## Limitations
-
-- Uses localStorage, so collaboration is limited to the same browser/device
-- For true multi-user collaboration, you'd need a backend server
-- Canvas size is responsive but drawing quality depends on screen resolution
-
-## Future Enhancements
-
-Potential improvements for a production version:
-- Real-time collaboration with WebSocket server
-- More drawing tools (shapes, layers)
-- Undo/redo functionality
-- Export options (PNG, PDF)
-- User authentication and persistent storage
-
----
 
 **Enjoy creating and collaborating! 🎨**
