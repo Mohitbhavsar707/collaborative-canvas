@@ -16,8 +16,8 @@ class CollaborativeCanvas {
         // Initialize event listeners
         this.initializeEventListeners();
         
-        // Load existing canvas data
-        this.loadCanvas();
+        // Load existing canvas data AFTER a short delay to ensure canvas is ready
+        setTimeout(() => this.loadCanvas(), 100);
         
         // Auto-save every 30 seconds
         setInterval(() => this.autoSave(), 30000);
@@ -110,6 +110,18 @@ class CollaborativeCanvas {
             this.resizeCanvas();
             this.ctx.putImageData(imageData, 0, 0);
         });
+        
+        // Save before page unload
+        window.addEventListener('beforeunload', () => {
+            this.autoSave();
+        });
+        
+        // Save when page becomes hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.autoSave();
+            }
+        });
     }
     
     updateCursor() {
@@ -145,6 +157,9 @@ class CollaborativeCanvas {
         // Start the path for drawing
         this.ctx.beginPath();
         this.ctx.moveTo(this.lastX, this.lastY);
+        
+        // Save immediately when drawing starts
+        this.autoSave();
     }
     
     draw(e) {
