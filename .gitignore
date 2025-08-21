@@ -32,6 +32,8 @@ build/
 
 # Firebase configuration files (contain sensitive API keys)
 firebase-config.js
+# But allow the API endpoint version that uses environment variables
+!api/firebase-config.js
 
 # Backup files
 *.backup
