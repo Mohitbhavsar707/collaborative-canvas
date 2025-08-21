@@ -30,6 +30,9 @@ build/
 .env.test.local
 .env.production.local
 
+# Firebase configuration files (contain sensitive API keys)
+firebase-config.js
+
 # Backup files
 *.backup
 *.bak
