@@ -1,6 +1,6 @@
 # Collaborative Drawing Canvas
 
-A simple web-based collaborative drawing application that allows multiple users to draw, add text, and paste images on a shared canvas. Built using ##Warp.
+A simple web-based collaborative drawing application that allows multiple users to draw, add text, and paste images on a shared canvas. Built using Warp.
 
 ## Features
 
