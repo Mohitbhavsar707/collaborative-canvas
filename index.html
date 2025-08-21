@@ -79,8 +79,8 @@
         </div>
     </div>
 
-    <!-- Firebase Config (if exists) -->
-    <script src="firebase-config.js" onerror="console.log('No firebase-config.js found - using fallback')"></script>
+    <!-- Firebase Config (from Vercel API or local file) -->
+    <script src="/api/firebase-config" onerror="console.log('Loading local firebase-config.js as fallback'); this.src='firebase-config.js'; this.onerror=null;"></script>
     
     <!-- Firebase SDK -->
     <script type="module">
