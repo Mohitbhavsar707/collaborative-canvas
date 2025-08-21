@@ -9,6 +9,10 @@ class CollaborativeCanvas {
         this.currentFontSize = 20;
         this.lastX = 0;
         this.lastY = 0;
+        this.isLoading = false;
+        
+        // Auto-save timer
+        setInterval(() => this.autoSave(), 30000);
         
         // Initialize canvas size
         this.resizeCanvas();
@@ -16,11 +20,8 @@ class CollaborativeCanvas {
         // Initialize event listeners
         this.initializeEventListeners();
         
-        // Load existing canvas data AFTER a short delay to ensure canvas is ready
-        setTimeout(() => this.loadCanvas(), 100);
-        
-        // Auto-save every 30 seconds
-        setInterval(() => this.autoSave(), 30000);
+        // Initialize enhanced collaboration
+        this.initializeCollaboration();
     }
     
     resizeCanvas() {
@@ -300,15 +301,100 @@ class CollaborativeCanvas {
         }
     }
     
+    
+    initializeCollaboration() {
+        // Set up localStorage change listener for cross-tab communication
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'collaborative-canvas' && e.newValue && !this.isLoading) {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data && data.imageData) {
+                        this.loadCanvasFromData(data, true); // true = from other tab/user
+                    }
+                } catch (error) {
+                    console.error('Error parsing storage update:', error);
+                }
+            }
+        });
+        
+        // Load initial canvas data
+        this.loadCanvas();
+        
+        console.log('🌍 Enhanced collaboration ready! (Cross-tab sync active)');
+    }
+    
+    loadCanvasFromData(data, isRealTimeUpdate = false) {
+        if (!data || !data.imageData) return;
+        
+        const img = new Image();
+        img.onload = () => {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(img, 0, 0);
+            
+            // Update UI
+            const timestamp = new Date(data.timestamp);
+            const timeString = timestamp.toLocaleString();
+            document.getElementById('last-saved').textContent = `Last saved: ${timeString}`;
+            document.getElementById('last-editor').textContent = `Last edited by: ${data.editor}`;
+            
+            if (isRealTimeUpdate && data.editor !== (document.getElementById('username').value || 'Anonymous')) {
+                this.showUpdateNotification(data.editor);
+            }
+        };
+        img.src = data.imageData;
+    }
+    
+    loadCanvasFromLocalStorage() {
+        const savedData = localStorage.getItem('collaborative-canvas') || 
+                         localStorage.getItem('collaborative-canvas-backup');
+        
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                this.loadCanvasFromData(data);
+                console.log('📱 Local canvas loaded');
+            } catch (error) {
+                console.error('Error loading local canvas:', error);
+            }
+        }
+    }
+    
+    showUpdateNotification(editorName) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 500;
+        `;
+        notification.textContent = `🔄 Updated by ${editorName}`;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 3000);
+    }
+    
     saveCanvas() {
         const username = document.getElementById('username').value || 'Anonymous';
         const canvasData = this.canvas.toDataURL();
         const saveData = {
             imageData: canvasData,
             timestamp: new Date().toISOString(),
-            editor: username
+            editor: username,
+            version: Date.now()
         };
         
+        // Save to localStorage (will trigger cross-tab sync)
         localStorage.setItem('collaborative-canvas', JSON.stringify(saveData));
         
         // Update UI
@@ -325,48 +411,27 @@ class CollaborativeCanvas {
             saveBtn.textContent = '💾 Save';
         }, 1500);
         
-        console.log('Canvas saved successfully!');
+        console.log('Canvas saved with cross-tab sync!');
     }
     
     loadCanvas() {
-        const savedData = localStorage.getItem('collaborative-canvas');
-        
-        if (savedData) {
-            try {
-                const data = JSON.parse(savedData);
-                const img = new Image();
-                
-                img.onload = () => {
-                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    this.ctx.drawImage(img, 0, 0);
-                    
-                    // Update UI
-                    const timestamp = new Date(data.timestamp);
-                    document.getElementById('last-saved').textContent = `Last saved: ${timestamp.toLocaleString()}`;
-                    document.getElementById('last-editor').textContent = `Last edited by: ${data.editor}`;
-                };
-                
-                img.src = data.imageData;
-                console.log('Canvas loaded successfully!');
-                
-            } catch (error) {
-                console.error('Error loading canvas:', error);
-            }
-        } else {
-            console.log('No saved canvas found.');
-        }
+        // Load from localStorage
+        this.loadCanvasFromLocalStorage();
     }
     
     autoSave() {
-        // Auto-save without user feedback
+        if (this.isLoading) return;
+        
         const username = document.getElementById('username').value || 'Anonymous';
         const canvasData = this.canvas.toDataURL();
         const saveData = {
             imageData: canvasData,
             timestamp: new Date().toISOString(),
-            editor: username
+            editor: username,
+            version: Date.now()
         };
         
+        // Auto-save to localStorage (will trigger cross-tab sync)
         localStorage.setItem('collaborative-canvas', JSON.stringify(saveData));
     }
     
