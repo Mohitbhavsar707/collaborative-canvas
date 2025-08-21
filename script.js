@@ -79,8 +79,8 @@ class CollaborativeCanvas {
         this.canvas.addEventListener('mouseout', this.stopDrawing.bind(this));
         
         // Touch events for mobile
-        this.canvas.addEventListener('touchstart', this.handleTouch.bind(this));
-        this.canvas.addEventListener('touchmove', this.handleTouch.bind(this));
+        this.canvas.addEventListener('touchstart', this.handleTouch.bind(this), { passive: false });
+        this.canvas.addEventListener('touchmove', this.handleTouch.bind(this), { passive: false });
         this.canvas.addEventListener('touchend', this.stopDrawing.bind(this));
         
         // Text tool click
@@ -145,8 +145,8 @@ class CollaborativeCanvas {
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
         return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
+            x: (e.clientX ?? (e.touches?.[0]?.clientX || 0)) - rect.left,
+            y: (e.clientY ?? (e.touches?.[0]?.clientY || 0)) - rect.top
         };
     }
     
@@ -304,7 +304,6 @@ class CollaborativeCanvas {
         }
     }
     
-    
     async initializeFirebaseCollaboration() {
         // Wait for Firebase to be ready
         const maxWait = 10000; // 10 seconds
@@ -380,9 +379,11 @@ class CollaborativeCanvas {
             
             // Update UI
             const timestamp = new Date(data.timestamp);
-            const timeString = timestamp.toLocaleString();
+            const timeString = isNaN(timestamp.getTime())
+                ? new Date().toLocaleString()
+                : timestamp.toLocaleString();
             document.getElementById('last-saved').textContent = `Last saved: ${timeString}`;
-            document.getElementById('last-editor').textContent = `Last edited by: ${data.editor}`;
+            document.getElementById('last-editor').textContent = `Last edited by: ${data.editor || 'Unknown'}`;
             
             if (isRealTimeUpdate && data.editor !== (document.getElementById('username').value || 'Anonymous')) {
                 this.showUpdateNotification(data.editor);
@@ -446,17 +447,16 @@ class CollaborativeCanvas {
     
     async saveCanvas() {
         const username = document.getElementById('username').value || 'Anonymous';
-        const canvasData = this.canvas.toDataURL();
-        
         let success = false;
         
         if (this.firebaseReady && window.firebaseUtils) {
-            // Save to Firebase
-            success = await window.firebaseUtils.saveCanvas(canvasData, username);
+            // Save to Firebase (pass the canvas element)
+            success = await window.firebaseUtils.saveCanvas(this.canvas, username);
         }
         
         if (!success) {
             // Fallback to localStorage
+            const canvasData = this.canvas.toDataURL();
             const saveData = {
                 imageData: canvasData,
                 timestamp: new Date().toISOString(),
@@ -505,15 +505,15 @@ class CollaborativeCanvas {
         if (this.isLoading) return;
         
         const username = document.getElementById('username').value || 'Anonymous';
-        const canvasData = this.canvas.toDataURL();
         
         if (this.firebaseReady && window.firebaseUtils) {
-            // Auto-save to Firebase
-            const success = await window.firebaseUtils.saveCanvas(canvasData, username);
+            // Auto-save to Firebase (pass the canvas element)
+            const success = await window.firebaseUtils.saveCanvas(this.canvas, username);
             if (success) return;
         }
         
         // Fallback to localStorage
+        const canvasData = this.canvas.toDataURL();
         const saveData = {
             imageData: canvasData,
             timestamp: new Date().toISOString(),

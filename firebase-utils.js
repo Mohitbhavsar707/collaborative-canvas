@@ -1,5 +1,5 @@
 // Firebase utilities for collaborative canvas
-import { ref, set, get, onValue, serverTimestamp, push } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { ref, set, get, onValue, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 // Wait for Firebase to be initialized
 function waitForFirebase() {
@@ -36,16 +36,17 @@ class FirebaseUtils {
         }
     }
     
-    // Save canvas data to Firebase
-    async saveCanvas(canvasData, username = 'Anonymous') {
+    // Save canvas as imageData (Base64 PNG) to Firebase
+    async saveCanvas(canvasElement, username = 'Anonymous') {
         if (!this.database) {
             console.warn('Firebase not ready yet');
             return false;
         }
         
         try {
+            const imageData = canvasElement.toDataURL("image/png"); // 👈 export canvas to Base64 PNG
             const saveData = {
-                imageData: canvasData,
+                imageData: imageData,
                 timestamp: serverTimestamp(),
                 editor: username,
                 version: Date.now()
@@ -60,7 +61,7 @@ class FirebaseUtils {
         }
     }
     
-    // Load canvas data from Firebase
+    // Load canvas imageData from Firebase
     async loadCanvas() {
         if (!this.database) {
             console.warn('Firebase not ready yet');
@@ -72,7 +73,7 @@ class FirebaseUtils {
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 console.log('🌍 Canvas loaded from Firebase');
-                return data;
+                return data; // will contain { imageData, timestamp, editor, version }
             } else {
                 console.log('No canvas data found in Firebase');
                 return null;
@@ -94,7 +95,9 @@ class FirebaseUtils {
             const unsubscribe = onValue(this.canvasRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    callback(data);
+                    if (data && data.imageData) {
+                        callback(data); // callback receives { imageData, ... }
+                    }
                 }
             });
             
