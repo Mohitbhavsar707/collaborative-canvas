@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Canvas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Collaborative Drawing Canvas</h1>
+            <div class="user-info">
+                <label for="username">Your Name:</label>
+                <input type="text" id="username" placeholder="Enter your name" value="Anonymous">
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="tool-group">
+                <label>Tools:</label>
+                <button id="draw-tool" class="tool-btn active" data-tool="draw">✏️ Draw</button>
+                <button id="erase-tool" class="tool-btn" data-tool="erase">🧽 Erase</button>
+                <button id="text-tool" class="tool-btn" data-tool="text">📝 Text</button>
+            </div>
+
+            <div class="tool-group">
+                <label for="color-picker">Color:</label>
+                <input type="color" id="color-picker" value="#000000">
+            </div>
+
+            <div class="tool-group">
+                <label for="brush-size">Size:</label>
+                <input type="range" id="brush-size" min="1" max="50" value="3">
+                <span id="size-display">3</span>
+            </div>
+
+            <div class="tool-group">
+                <label for="font-size">Font Size:</label>
+                <input type="range" id="font-size" min="12" max="72" value="20">
+                <span id="font-size-display">20</span>
+            </div>
+
+            <div class="tool-group">
+                <label for="image-upload">Image:</label>
+                <input type="file" id="image-upload" accept="image/*">
+            </div>
+
+            <div class="tool-group actions">
+                <button id="clear-canvas" class="action-btn">🗑️ Clear</button>
+                <button id="save-canvas" class="action-btn">💾 Save</button>
+                <button id="load-canvas" class="action-btn">📁 Load</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="drawing-canvas"></canvas>
+            <div id="text-input" class="text-input-overlay" style="display: none;">
+                <input type="text" id="text-field" placeholder="Type your text...">
+                <button id="confirm-text">✓</button>
+                <button id="cancel-text">✗</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <p>💡 <strong>How to use:</strong></p>
+            <ul>
+                <li>Draw: Click and drag to draw on the canvas</li>
+                <li>Erase: Switch to eraser tool and drag to erase</li>
+                <li>Text: Click on the canvas to add text</li>
+                <li>Images: Upload or paste (Ctrl+V) images</li>
+                <li>Save/Load: Your work is automatically shared with other users</li>
+            </ul>
+        </div>
+
+        <div class="version-info">
+            <p id="last-saved">Last saved: Never</p>
+            <p id="last-editor">Last edited by: Nobody</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
