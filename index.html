@@ -80,8 +80,9 @@
     </div>
 
     <!-- Firebase Config (from Vercel API or local file) -->
-    <script src="/api/firebase-config" onerror="console.log('Loading local firebase-config.js as fallback'); this.src='firebase-config.js'; this.onerror=null;"></script>
-    
+    <script src="/api/firebase-config?v=1"
+        onerror="console.log('Loading local firebase-config.js as fallback'); this.src='firebase-config.js?v=1'; this.onerror=null;"></script>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
