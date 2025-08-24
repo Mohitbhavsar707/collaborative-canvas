@@ -35,6 +35,9 @@ firebase-config.js
 # But allow the API endpoint version that uses environment variables
 !api/firebase-config.js
 
+# Local development Firebase config (ADD THIS LINE)
+firebase-config.local.js
+
 # Backup files
 *.backup
 *.bak

@@ -56,6 +56,17 @@ body {
     border-color: #4CAF50;
 }
 
+/* Connection status styling */
+.connection-status {
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
 .toolbar {
     display: flex;
     flex-wrap: wrap;

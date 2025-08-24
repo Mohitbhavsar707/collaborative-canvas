@@ -9,10 +9,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Collaborative Drawing Canvas</h1>
+            <h1>🌍 Collaborative Drawing Canvas</h1>
             <div class="user-info">
                 <label for="username">Your Name:</label>
                 <input type="text" id="username" placeholder="Enter your name" value="Anonymous">
+            </div>
+            <div class="connection-status" id="connection-status">
+                🔄 Connecting to Firebase...
             </div>
         </div>
 
@@ -69,40 +72,82 @@
                 <li>Erase: Switch to eraser tool and drag to erase</li>
                 <li>Text: Click on the canvas to add text</li>
                 <li>Images: Upload or paste (Ctrl+V) images</li>
-                <li>Save/Load: Your work is automatically shared with other users</li>
+                <li>🌍 Your work syncs globally in real-time with all users!</li>
             </ul>
         </div>
 
         <div class="version-info">
             <p id="last-saved">Last saved: Never</p>
             <p id="last-editor">Last edited by: Nobody</p>
+            <p id="active-users">Active users: Loading...</p>
         </div>
     </div>
 
-    <!-- Firebase Config (from Vercel API or local file) -->
-    <script src="/api/firebase-config?v=1"
-        onerror="console.log('Loading local firebase-config.js as fallback'); this.src='firebase-config.js?v=1'; this.onerror=null;"></script>
+    <!-- Load Firebase Config from Vercel API endpoint -->
+    <script>
+        console.log('🔄 Loading Firebase configuration...');
+        
+        // Create script element to load Firebase config
+        const configScript = document.createElement('script');
+        configScript.src = '/api/firebase-config?t=' + Date.now(); // Cache busting
+        
+        configScript.onload = function() {
+            console.log('✅ Firebase config script loaded successfully');
+            // Initialize Firebase after config is loaded
+            initializeFirebase();
+        };
+        
+        configScript.onerror = function() {
+            console.warn('⚠️ Failed to load Firebase config from API, trying fallback...');
+            // Try fallback local config
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'firebase-config.js?t=' + Date.now();
+            fallbackScript.onload = initializeFirebase;
+            fallbackScript.onerror = function() {
+                console.error('❌ Both Firebase config sources failed');
+                document.getElementById('connection-status').textContent = '❌ Config Failed';
+                document.getElementById('connection-status').style.color = '#dc3545';
+            };
+            document.head.appendChild(fallbackScript);
+        };
+        
+        document.head.appendChild(configScript);
+    </script>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK and App Initialization -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
         
-        // Firebase configuration from environment variables
-        // For production, these should be set as environment variables in your hosting platform
-        const firebaseConfig = {
-            apiKey: window.FIREBASE_API_KEY || "demo-api-key",
-            authDomain: window.FIREBASE_AUTH_DOMAIN || "demo-project.firebaseapp.com",
-            databaseURL: window.FIREBASE_DATABASE_URL || "https://demo-project-default-rtdb.firebaseio.com",
-            projectId: window.FIREBASE_PROJECT_ID || "demo-project",
-            storageBucket: window.FIREBASE_STORAGE_BUCKET || "demo-project.appspot.com",
-            messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID || "123456789",
-            appId: window.FIREBASE_APP_ID || "demo-app-id"
-        };
-        
-        // Only initialize Firebase if we have real config (not demo values)
-        if (firebaseConfig.apiKey !== "demo-api-key") {
+        // Make initializeFirebase available globally
+        window.initializeFirebase = function() {
+            console.log('🔥 Initializing Firebase...');
+            
+            // Check if we have the required config
+            if (!window.FIREBASE_API_KEY || window.FIREBASE_API_KEY === 'demo-key') {
+                console.warn('⚠️ Firebase not properly configured - using demo mode');
+                document.getElementById('connection-status').textContent = '⚠️ Demo Mode';
+                document.getElementById('connection-status').style.color = '#ffc107';
+                return;
+            }
+            
             try {
+                const firebaseConfig = {
+                    apiKey: window.FIREBASE_API_KEY,
+                    authDomain: window.FIREBASE_AUTH_DOMAIN,
+                    databaseURL: window.FIREBASE_DATABASE_URL,
+                    projectId: window.FIREBASE_PROJECT_ID,
+                    storageBucket: window.FIREBASE_STORAGE_BUCKET,
+                    messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID,
+                    appId: window.FIREBASE_APP_ID
+                };
+                
+                console.log('🔥 Firebase config ready:', {
+                    projectId: firebaseConfig.projectId,
+                    databaseURL: firebaseConfig.databaseURL,
+                    authDomain: firebaseConfig.authDomain
+                });
+                
                 const app = initializeApp(firebaseConfig);
                 const database = getDatabase(app);
                 
@@ -111,12 +156,17 @@
                 window.firebaseDatabase = database;
                 
                 console.log('🔥 Firebase initialized successfully!');
+                
+                // Update connection status
+                document.getElementById('connection-status').textContent = '🟢 Firebase Connected';
+                document.getElementById('connection-status').style.color = '#28a745';
+                
             } catch (error) {
-                console.warn('Firebase initialization failed, falling back to localStorage:', error);
+                console.error('❌ Firebase initialization failed:', error);
+                document.getElementById('connection-status').textContent = '❌ Firebase Error';
+                document.getElementById('connection-status').style.color = '#dc3545';
             }
-        } else {
-            console.log('🔥 Firebase not configured - using localStorage only');
-        }
+        };
     </script>
     
     <!-- Firebase utilities -->
@@ -124,10 +174,5 @@
     
     <!-- Main application -->
     <script src="script.js"></script>
-    
-    <!-- Firebase Global Collaboration Status -->
-    <div style="position: fixed; bottom: 10px; left: 10px; background: #00c851; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 300px;">
-        🌍 <strong>Global Collaboration:</strong> Canvas syncs in real-time across all devices worldwide via Firebase!
-    </div>
 </body>
 </html>
